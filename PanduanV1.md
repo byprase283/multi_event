@@ -102,6 +102,31 @@ php artisan make:model Event -m
 php artisan make:model Voucher -m
 php artisan make:model Participant -m
 ```
+Tambahkan pada Model Participant:
+```php
+
+    protected $fillable = [
+        'event_id',
+        'kode_registrasi',
+        'nama',
+        'email',
+        'whatsapp',
+        'bukti_bayar',
+        'status',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+    ];
+
+    /**
+     * Get event for this participant
+     */
+    public function event()
+    {
+        return $this->belongsTo(Event::class);
+    }
+```
 
 ### B. Edit File Migration
 File migration ada di `database/migrations/`.
