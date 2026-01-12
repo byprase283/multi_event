@@ -1,59 +1,174 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Panduan Lengkap Pengembangan Sistem Registrasi Multi-Event
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Dokumen ini berisi langkah-langkah detail untuk membangun sistem registrasi event berbasis Laravel 12 yang telah kita buat. Sistem ini mencakup pendaftaran publik, validasi admin, diskon voucher, tiket QR Code, dan scanner admin.
 
-## About Laravel
+## 1. Persiapan Lingkungan
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Pastikan komputer Anda sudah terinstall:
+- **PHP** >= 8.2
+- **Composer** (Dependency Manager PHP)
+- **Node.js** & **NPM** (Untuk manajemen aset frontend)
+- **Database** (SQLite/MySQL)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 2. Instalasi Proyek Laravel
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+Buka terminal dan jalankan perintah berikut untuk membuat proyek baru:
 
-## Learning Laravel
+```bash
+composer create-project laravel/laravel:^12.0 multi-event
+cd multi-event
+```
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+## 3. Desain Database (Migration)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Kita membutuhkan 3 tabel utama selain tabel bawaan `users`.
 
-## Laravel Sponsors
+### a. Tabel `events`
+Menyimpan data acara seperti nama, tanggal, harga, kuota, dan info rekening.
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+php artisan make:migration create_events_table
+```
 
-### Premium Partners
+**Schema:**
+- `id`, `nama`, `deskripsi`, `tanggal_event`, `lokasi`
+- `harga`, `kuota`, `terisi`
+- `gambar`, `bank_name`, `bank_account`, `bank_holder`
+- `is_active`
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+### b. Tabel `vouchers`
+Menyimpan kode diskon.
 
-## Contributing
+```bash
+php artisan make:migration create_vouchers_table
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+**Schema:**
+- `id`, `kode` (Unique), `nominal`
+- `kuota`, `terpakai`
+- `start_date`, `end_date`, `is_active`
 
-## Code of Conduct
+### c. Tabel `participants`
+Menyimpan data pendaftar.
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+```bash
+php artisan make:migration create_participants_table
+```
 
-## Security Vulnerabilities
+**Schema:**
+- `id`, `event_id` (Foreign Key)
+- `nama`, `email`, `whatsapp`
+- `kode_registrasi` (Ticket ID), `token_hash` (Untuk QR)
+- `bukti_bayar`, `status_verifikasi` (Pending/Valid/Invalid/Redeem)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Jalankan migrasi:
+```bash
+php artisan migrate
+```
 
-## License
+## 4. Implementasi Backend (Models & Controllers)
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### Models
+Buat model dan relasinya:
+- `Event` hasMany `Participant`
+- `Participant` belongsTo `Event`
+- `Voucher` (Standalone logic untuk cek validitas)
+
+### Controllers
+Kita membagi controller menjadi 2 area:
+
+**A. Public (Frontend User)**
+- `HomeController`: Menampilkan daftar event aktif.
+- `RegistrationController`:
+    - Menampilkan form daftar (`create`).
+    - Menyimpan data & upload bukti bayar (`store`).
+    - Cek validitas voucher via AJAX (`checkVoucher`).
+    - Halaman sukses & tiket (`success`, `verifyTicket`).
+
+**B. Admin (Backend)**
+- `AuthController`: Login/Logout admin.
+- `DashboardController`: Statistik pendaftar & event.
+- `EventController`: CRUD Event + Upload Gambar.
+- `VoucherController`: CRUD Voucher.
+- `ParticipantController`:
+    - List pendaftar (Filter by status/event).
+    - Validasi (Approve/Reject).
+    - Kirim Tiket (Redirect ke API WhatsApp).
+- `ScannerController`: Logika untuk memproses hasil scan QR Code.
+
+## 5. Implementasi Frontend
+
+### Public Area (Tailwind CSS)
+Kita menggunakan **Tailwind CSS** (via CDN untuk kemudahan) agar desain terlihat modern.
+- **Landing Page**: Menampilkan kartu event dengan desain grid responsive.
+- **Form Registrasi**:
+    - Validasi input realtime (HTML5).
+    - Fitur cek voucher tanpa reload (Fetch API).
+    - Kalkulasi total harga otomatis.
+    - Fitur "Salin No Rekening".
+- **Halaman Tiket**: Desain menyerupai tiket fisik dengan QR Code (menggunakan `qrcode.js`).
+
+### Admin Area (Bootstrap 5)
+Kita menggunakan **Bootstrap 5** untuk kecepatan pengembangan dashboard.
+- **Sidebar Navigation**: Menu dashboard, events, vouchers, peserta, scan.
+- **Voucher Management**: Form tambah/edit voucher.
+- **Participant Management**: Tabel data dengan badge status warna-warni & tombol aksi cepat.
+- **Scanner**: Halaman khusus yang mengakses kamera device menggunakan `html5-qrcode` untuk scan tiket.
+
+## 6. Fitur Unggulan Detail
+
+### 🎟️ Sistem Validasi & Tiket
+1. User daftar -> Status `Pending`.
+2. Admin cek bukti bayar -> Klik `Validasi`.
+3. Sistem generate `kode_registrasi` (misal: EVT-001) dan `token_hash` unik.
+4. Admin klik tombol `WhatsApp` -> Membuka WA dengan template pesan berisi link tiket.
+5. User buka link tiket -> Muncul QR Code.
+
+### 📱 QR Code Scanner
+1. Admin membuka menu `Scan Tiket`.
+2. Halaman meminta izin kamera.
+3. Admin scan QR di HP peserta.
+4. Sistem mengecek `token_hash` di database:
+    - Jika **Valid**: Update status ke `Redeem`, muncul pesan "Berhasil".
+    - Jika **Sudah Redeem**: Muncul peringatan "Sudah Digunakan".
+    - Jika **Tidak Ditemukan**: Muncul error.
+
+### 💰 Kode Voucher
+- Admin membuat voucher (misal: `EARLYBIRD`, diskon 50k, kuota 10).
+- User input kode saat daftar.
+- Sistem mengecek: Apakah kode ada? Masih aktif? Kuota cukup? Tanggal valid?
+- Jika oke, harga total langsung terpotong.
+
+## 7. Deployment & Testing
+
+1. **Jalankan Server**:
+   ```bash
+   php artisan serve
+   ```
+
+2. **Link Storage** (Penting untuk gambar):
+   ```bash
+   php artisan storage:link
+   ```
+
+3. **Akun Admin Default** (dari Seeder):
+   - Email: `admin@admin.com`
+   - Pass: `password`
+
+## 8. Struktur Folder Utama
+
+```
+multi-event/
+├── app/
+│   ├── Http/Controllers/Admin/  # Logika Admin
+│   ├── Models/                  # Logika Database
+├── database/migrations/         # Struktur Tabel
+├── resources/views/
+│   ├── admin/                   # View Admin (Bootstrap)
+│   ├── registration/            # View Pendaftaran (Tailwind)
+│   ├── ticket/                  # View Tiket
+│   └── welcome.blade.php        # Halaman Depan
+└── routes/web.php               # Definisi URL
+```
+
+Sistem ini sekarang siap digunakan untuk kegiatan sekolah, seminar, atau lomba! 🚀
