@@ -445,7 +445,7 @@ Buat folder `resources/views/registration/` terlebih dahulu.
 </div>
 @endsection
 ```
-### D. Page Berhasil Registrasi (`resources/views/registration/success.blade.php`)
+### E. Page Berhasil Registrasi (`resources/views/registration/success.blade.php`)
 
 ```html
     <!DOCTYPE html>
@@ -517,7 +517,7 @@ Buat folder `resources/views/registration/` terlebih dahulu.
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-500">Tanggal Event:</span>
-                            <span class="font-medium">{{ $participant->event->tanggal_event->format('d M Y, H:i') }}</span>
+                            <span class="font-medium">{{ $participant->event->created_at->format('d M Y, H:i') }}</span>
                         </div>
                         <div class="flex justify-between">
                             <span class="text-gray-500">Status:</span>
