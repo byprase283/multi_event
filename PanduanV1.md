@@ -90,7 +90,7 @@ Buka terminal (bisa di VS Code atau CMD), arahkan ke folder tempat Anda ingin me
 
 ---
 
-## 4. Backend: Migration, Model, Seeder
+## 4. Migration, Model, Seeder
 
 Kita akan membuat tabel untuk Event, Voucher, dan Peserta.
 
