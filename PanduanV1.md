@@ -8,9 +8,9 @@ Dokumen ini adalah panduan langkah demi langkah untuk membangun sistem registras
 1. [Persiapan Software (Tools)](#1-persiapan-software-tools)
 2. [Instalasi Proyek Laravel](#2-instalasi-proyek-laravel)
 3. [Konfigurasi & Database](#3-konfigurasi--database)
-4. [Backend: Migration, Model, Seeder](#4-backend-migration-model-seeder)
-5. [Backend: Controller & Route](#5-backend-controller--route)
-6. [Frontend: Setup & Views](#6-frontend-setup--views)
+4. [Migration, Model, Seeder](#4-migration-model-seeder)
+5. [Controller & Route](#5-controller--route)
+6. [Setup & Views](#6-setup--views)
 7. [Menjalankan Aplikasi](#7-menjalankan-aplikasi)
 
 ---
@@ -232,7 +232,7 @@ php artisan db:seed --class=EventSeeder
 
 ---
 
-## 5. Backend: Controller & Route
+## 5. Controller & Route
 
 ### A. Controller Utama
 Kita butuh controller untuk halaman publik dan pendaftaran.
@@ -325,7 +325,7 @@ Route::get('/registration/{id}/success', [RegistrationController::class, 'succes
 
 ---
 
-## 6. Frontend: Setup & Views
+## 6. Setup & Views
 
 ### A. Setup Environment
 Kita menggunakan Tailwind CSS yang sudah terintegrasi di Laravel 12.
